@@ -42,18 +42,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		fmt.Println("It's a GEEET")
-		output = "Hi! You've requested: /" + vars["pageId"]
+		output = "GET: "
+		output = output + "Hi! You've requested: /" + vars["pageId"]
 	case "POST":
-		fmt.Println("It's a POOOOOST")
 		var decoder = json.NewDecoder(r.Body)
 		var t testStruct
 		decoder.Decode(&t)
-		fmt.Println("Username", t.Username)
-		fmt.Println("Password", t.Password)
 		var jsonResponse []byte
 		jsonResponse, _ = json.MarshalIndent(t, "", "    ")
-		output = "Hi! You've requested: /" + vars["pageId"]
+		output = "POST: "
+		output = output + "Hi! You've requested: /" + vars["pageId"]
 		output = output + "\n"
 		output = output + string(jsonResponse[:])
 	}

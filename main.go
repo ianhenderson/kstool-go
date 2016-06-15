@@ -52,7 +52,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Username", t.Username)
 		fmt.Println("Password", t.Password)
 		var jsonResponse []byte
-		jsonResponse, _ = json.Marshal(t)
+		jsonResponse, _ = json.MarshalIndent(t, "", "    ")
 		output = "Hi! You've requested: /" + vars["pageId"]
 		output = output + "\n"
 		output = output + string(jsonResponse[:])

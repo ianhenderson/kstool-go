@@ -5,30 +5,59 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"encoding/json"
 	// External libs
 	"github.com/gorilla/mux"
 )
 
+type testStruct struct {
+	Username string `json:"username"`
+	Password string  `json:"password"`
+}
+
 func buildRouter() *mux.Router {
-	router := mux.NewRouter().StrictSlash(true)
+	var router *mux.Router = mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", handler)
 	router.HandleFunc("/{pageId}", handler)
 	return router
 }
 
 func CreateServer(defaultPort string) error {
-	port := os.Getenv("PORT")
+	var (
+		port string = os.Getenv("PORT")
+		router *mux.Router = buildRouter()
+	)
 	if len(port) == 0 {
 		port = defaultPort
 	}
-	router := buildRouter()
 	fmt.Println("Listening on port", port)
 	return http.ListenAndServe(":"+port, router)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	output := "Hi! You've requested: /" + vars["pageId"]
+	var (
+		vars map[string]string = mux.Vars(r)
+		output string
+	)
+
+	switch r.Method {
+		case "GET":
+			fmt.Println("It's a GEEET")
+			output = "Hi! You've requested: /" + vars["pageId"]
+		case "POST":
+			fmt.Println("It's a POOOOOST")
+			var decoder *json.Decoder = json.NewDecoder(r.Body)
+			var t testStruct
+			decoder.Decode(&t)
+			fmt.Println("Username", t.Username)
+			fmt.Println("Password", t.Password)
+			var jsonResponse []byte
+			jsonResponse, _ = json.Marshal(t)
+			output = "Hi! You've requested: /" + vars["pageId"]
+			output = output + "\n"
+			output = output + string(jsonResponse[:])
+	}
+
 	fmt.Fprintf(w, output)
 }
 

@@ -50,6 +50,12 @@ var expectedSigninResponse, _ = json.Marshal(
 	},
 )
 
+var newWord, _ = json.Marshal(
+	map[string][]string{
+		"fact": fakeUser.fact,
+	},
+)
+
 // Test cases
 var testMatrix = []struct {
 	method         string
@@ -66,6 +72,12 @@ var testMatrix = []struct {
 	{"POST", "/api/login", string(badSigninInfo), 403, `{}`},
 	// Sign in w/ correct info
 	{"POST", "/api/login", string(newUserInfo), 200, string(expectedSigninResponse)},
+	// Get kanji when list is empty
+	{"GET", "/api/kanji", "", 404, ""},
+	// Add word
+	{"POST", "/api/facts", string(newWord), 201, ""},
+	// Get kanji when list is not empty
+	// {"GET", "/api/kanji", "", 200, fakeUser.factsStripped[0]},
 }
 
 func TestAPI(t *testing.T) {

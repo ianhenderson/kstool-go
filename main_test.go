@@ -9,20 +9,11 @@ import (
 	"testing"
 )
 
-// type User struct {
-// 	username      string
-// 	password      string
-// 	fact          []string
-// 	factStripped  string
-// 	facts         []string
-// 	factsStripped string
-// }
-
 // Instantiate router
 var router = buildRouter()
 
 // Dummy user data
-var newUser = struct {
+var fakeUser = struct {
 	username      string
 	password      string
 	fact          []string
@@ -38,6 +29,27 @@ var newUser = struct {
 	"名称宇宙膨張発見天文学者因",
 }
 
+var badSigninInfo, _ = json.Marshal(
+	map[string]string{
+		"username": fakeUser.username,
+		"password": "abcdefg",
+	},
+)
+
+var newUserInfo, _ = json.Marshal(
+	map[string]string{
+		"username": fakeUser.username,
+		"password": fakeUser.password,
+	},
+)
+
+var expectedSigninResponse, _ = json.Marshal(
+	map[string]interface{}{
+		"id":   1,
+		"name": fakeUser.username,
+	},
+)
+
 // Test cases
 var testMatrix = []struct {
 	method         string
@@ -46,13 +58,17 @@ var testMatrix = []struct {
 	expectedStatus int
 	expectedBody   string
 }{
+	// Get kanji w/out session
 	{"GET", "/api/kanji", "", 403, ""},
-	{"POST", "/api/signup", "", 201, ""},
-	{"POST", "/", `{}`, 200, `{ss}`},
+	// Sign up
+	{"POST", "/api/signup", string(newUserInfo), 201, string(expectedSigninResponse)},
+	// Sign in w/ wrong info
+	{"POST", "/api/login", string(badSigninInfo), 403, `{}`},
+	// Sign in w/ correct info
+	{"POST", "/api/login", string(newUserInfo), 200, string(expectedSigninResponse)},
 }
 
 func TestAPI(t *testing.T) {
-
 	// Test GET requests
 	for _, tc := range testMatrix {
 

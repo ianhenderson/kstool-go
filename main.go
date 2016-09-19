@@ -13,12 +13,14 @@ import (
 type testStruct struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Fact []string `json:"fact"`
 }
 
 func buildRouter() *mux.Router {
 	var router *mux.Router = mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", handler)
 	router.HandleFunc("/{pageId}", handler)
+	router.HandleFunc("/api/{pageId}", handler)
 	return router
 }
 
@@ -45,13 +47,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		output = "GET: "
 		output = output + "Hi! You've requested: /" + vars["pageId"]
 	case "POST":
-		var decoder = json.NewDecoder(r.Body)
 		var t testStruct
-		decoder.Decode(&t)
+		json.NewDecoder(r.Body).Decode(&t)
 		var jsonResponse []byte
 		jsonResponse, _ = json.MarshalIndent(t, "", "    ")
 		output = "POST: "
 		output = output + "Hi! You've requested: /" + vars["pageId"]
+		output = output + "\n"
+		output = output + "\n"
+		output = output + "Body json:"
 		output = output + "\n"
 		output = output + string(jsonResponse[:])
 	}

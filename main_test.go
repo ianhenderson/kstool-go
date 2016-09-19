@@ -2,12 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+// Helper function
+func getCharAt(str string, i int) string {
+    return string([]rune(str)[i])
+}
 
 // Instantiate router
 var router = buildRouter()
@@ -56,13 +60,20 @@ var newWord, _ = json.Marshal(
 	},
 )
 
+var newWords, _ = json.Marshal(
+	map[string][]string{
+		"fact": fakeUser.facts,
+	},
+)
+
 // Test cases
 var testMatrix = []struct {
 	method         string
 	path           string
 	body           string
 	expectedStatus int
-	expectedBody   string
+	// expectedBody   string
+	expectedBody   interface{}
 }{
 	// Get kanji w/out session
 	{"GET", "/api/kanji", "", 403, ""},
@@ -76,28 +87,42 @@ var testMatrix = []struct {
 	{"GET", "/api/kanji", "", 404, ""},
 	// Add word
 	{"POST", "/api/facts", string(newWord), 201, ""},
+	// TODO: check db integrity after adding one word
 	// Get kanji when list is not empty
-	// {"GET", "/api/kanji", "", 200, fakeUser.factsStripped[0]},
+	{"GET", "/api/kanji", "", 200, getCharAt(fakeUser.factStripped, 0)}, // 日
+	{"GET", "/api/kanji", "", 200, getCharAt(fakeUser.factStripped, 1)}, // 本
+	{"GET", "/api/kanji", "", 200, getCharAt(fakeUser.factStripped, 2)}, // 語
+	{"GET", "/api/kanji", "", 200, getCharAt(fakeUser.factStripped, 3)}, // 盛
+	{"GET", "/api/kanji", "", 200, getCharAt(fakeUser.factStripped, 4)}, // 上
+	// no more characters now
+	{"GET", "/api/kanji", "", 404, ""},
+	// Add multiple words
+	{"POST", "/api/facts", string(newWords), 201, ""},
+	// TODO: check db integrity after adding multiple words
+	// Logout
+	{"POST", "/api/logout", "", 200, ""},
+	// Get kanji after logging out: not authorized
+	{"GET", "/api/kanji", "", 403, ""},
 }
 
 func TestAPI(t *testing.T) {
 	// Test GET requests
-	for _, tc := range testMatrix {
+	for _, testCase := range testMatrix {
 
 		// Build request
 		var request *http.Request
-		switch tc.method {
+		switch testCase.method {
 		case "GET":
 			request, _ = http.NewRequest(
-				tc.method,
-				tc.path,
+				testCase.method,
+				testCase.path,
 				nil,
 			)
 		case "POST":
 			request, _ = http.NewRequest(
-				tc.method,
-				tc.path,
-				strings.NewReader(tc.body),
+				testCase.method,
+				testCase.path,
+				strings.NewReader(testCase.body),
 			)
 		}
 
@@ -106,15 +131,12 @@ func TestAPI(t *testing.T) {
 		router.ServeHTTP(response, request)
 
 		// Check results
-		fmt.Println(response.Body)
 		var x map[string]interface{}
-		var jsonResponse []byte
-		decoder := json.NewDecoder(response.Body)
-		decoder.Decode(&x)
-		jsonResponse, _ = json.MarshalIndent(t, "", "    ")
+		json.NewDecoder(response.Body).Decode(&x)
+		var jsonResponse, _ = json.Marshal(x)
 
-		statusFail := response.Code != tc.expectedStatus
-		bodyFail := string(jsonResponse) != tc.expectedBody
+		statusFail := response.Code != testCase.expectedStatus
+		bodyFail := string(jsonResponse) != testCase.expectedBody
 		if statusFail || bodyFail {
 			t.Errorf(
 				"\nMethod: %s, Path: %s\n"+
@@ -122,11 +144,11 @@ func TestAPI(t *testing.T) {
 					"     Got status: %d\n"+
 					"Expected body: %s\n"+
 					"     Got body: %s\n",
-				tc.method,
-				tc.path,
-				tc.expectedStatus,
+				testCase.method,
+				testCase.path,
+				testCase.expectedStatus,
 				response.Code,
-				tc.expectedBody,
+				testCase.expectedBody,
 				string(jsonResponse),
 			)
 		}
